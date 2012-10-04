@@ -3,6 +3,13 @@ import java.util.concurrent.Executors
 import com.lmax.disruptor._
 import com.mongodb.casbah.Imports._
 import voldemort.client._
+import com.mongodb.casbah.WriteConcern
+//import com.twitter.cassie._
+//import com.twitter.cassie.codecs.Utf8Codec
+//import com.twitter.cassie.types.LexicalUUID
+// TODO: unfortunate
+//import scala.collection.JavaConversions._
+//import com.twitter.logging.Logger
 
 object Main {
   val bootstrapUrl = "tcp://localhost:6666"
@@ -11,7 +18,11 @@ object Main {
 
   val mongoConn = MongoConnection()
   val coll = mongoConn("disruptor")("trade")
-
+  WriteConcern.Safe
+  
+  //val cluster = new Cluster("localhost")
+  //val keyspace = cluster.keyspace("Keyspace1").connect()
+  //val cass = keyspace.columnFamily("Standard1", Utf8Codec, Utf8Codec, Utf8Codec)
 
   case class ValueEvent(var value: Long, var trade:String)
 
@@ -31,7 +42,7 @@ object Main {
         client.put(event.value.toString,event.trade)
 
         //coll += builder.result.asDBObject
-        println(event.value + event.trade + " added trade to voldemort")
+        //println(event.value + event.trade + " added trade to voldemort")
     
     }
   }
@@ -44,10 +55,18 @@ object Main {
         //client.put(event.value.toString,event.trade)
 
         coll += builder.result.asDBObject
-        println(event.value + event.trade + " added trade to mongo")
+        //println(event.value + event.trade + " added trade to mongo")
     
     }
   }
+
+  //class CassValueEventHandler extends EventHandler[ValueEvent] {
+  //  def onEvent(event: ValueEvent, sequence: Long, endOfBatch: Boolean) {
+  //     cass.insert(event.value.toString, Column("trade", event.trade)).apply()
+  //      println(event.value + event.trade + " added trade to cass")
+  //  
+  //  }
+  //}
 
 
 
@@ -62,12 +81,12 @@ object Main {
 
     val handler1 = new ValueEventHandler
     val handler2 = new MongoValueEventHandler
-
+    //val handler3 = new CassValueEventHandler
 
     val disruptor = new Disruptor[ValueEvent](factory, executor, new SingleThreadedClaimStrategy(ring_size), 
                                               new SleepingWaitStrategy())
 
-    disruptor.handleEventsWith(handler1, handler2)
+    disruptor.handleEventsWith(handler2)
 
 
     disruptor.start()
